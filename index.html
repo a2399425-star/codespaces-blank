@@ -22,9 +22,11 @@
         .tag-tip { @apply bg-indigo-100 text-indigo-700; }
         .card-shadow { box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05); }
         
-        /* Modal 動畫 */
+        /* 動畫特效 */
         .modal-enter-active, .modal-leave-active { transition: opacity 0.3s ease; }
         .modal-enter-from, .modal-leave-to { opacity: 0; }
+        .radar-ping { animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
         [v-cloak] { display: none; }
     </style>
 </head>
@@ -103,7 +105,22 @@
         </div>
 
         <div v-if="currentTab === 'utils'" class="p-4 space-y-4">
-            <h2 class="text-2xl font-bold px-2 mb-2">旅途工具</h2>
+            
+            <div class="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden active:scale-95 transition-transform" @click="findKujiShops">
+                <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/20 rounded-full blur-xl"></div>
+                <div class="relative z-10 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-bold mb-1"><i class="fa-solid fa-ticket mr-2"></i>一番賞雷達</h3>
+                        <p class="text-yellow-50 text-sm">搜尋附近可抽獎店家</p>
+                    </div>
+                    <div class="relative">
+                        <span class="absolute inline-flex h-full w-full rounded-full bg-white opacity-30 radar-ping"></span>
+                        <i class="fa-solid fa-location-crosshairs text-3xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="text-xl font-bold px-2 mt-6 mb-2">旅途資訊</h2>
             
             <div class="bg-white rounded-2xl p-5 card-shadow">
                 <h3 class="font-bold text-slate-800 mb-4 flex items-center"><i class="fa-solid fa-plane-departure text-indigo-500 mr-2"></i> 航班資訊</h3>
@@ -146,7 +163,7 @@
 
             <div class="bg-white rounded-2xl p-4 card-shadow mb-6">
                 <div class="grid grid-cols-2 gap-3 mb-3">
-                    <input v-model="newExpense.item" type="text" placeholder="項目 (如: 章魚燒)" class="bg-slate-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input v-model="newExpense.item" type="text" placeholder="項目" class="bg-slate-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <input v-model.number="newExpense.amount" type="number" placeholder="金額 (JPY)" class="bg-slate-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <button @click="addExpense" class="w-full bg-slate-900 text-white rounded-xl py-3 text-sm font-bold shadow-md active:scale-95 transition-transform">新增支出 (同步)</button>
@@ -217,12 +234,16 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-    // 🔴 🔴 🔴 請把你的 Firebase 設定貼在下面這裡 🔴 🔴 🔴
-    // 請刪除這個 const firebaseConfig = {}; 然後貼上你從 Firebase 網站複製的那整段程式碼
+    // ✅ 我已經幫你填好你的專屬設定了！
     const firebaseConfig = {
-        // ❌ 這裡現在是空的！請務必貼上！
+      apiKey: "AIzaSyBM7ZkACa3GCyDHyM6-cvAptRdTLrP1Vz4",
+      authDomain: "project-6278516196770343325.firebaseapp.com",
+      projectId: "project-6278516196770343325",
+      storageBucket: "project-6278516196770343325.firebasestorage.app",
+      messagingSenderId: "1092753345526",
+      appId: "1:1092753345526:web:83c76c77e00a6a2ad255d7",
+      measurementId: "G-JZ408WWH2S"
     };
-    // 🔴 🔴 🔴 結束 🔴 🔴 🔴
 
     let db;
     try {
@@ -244,6 +265,7 @@
             const newItem = ref({ time: '10:00', place: '', type: 'sightseeing' });
             const newExpense = ref({ item: '', amount: '' });
 
+            // 預設行程 (僅在第一次無資料時使用)
             const defaultItinerary = [
                 { date: '1/19', location: '名古屋', schedule: [
                     { time: '13:00', place: '名古屋中部國際機場', type: 'transport' },
@@ -320,6 +342,28 @@
                 }
             };
 
+            // 🔍 一番賞雷達功能
+            const findKujiShops = () => {
+                // 嘗試獲取 GPS 定位
+                if (navigator.geolocation) {
+                    alert('正在偵測你的位置...請允許 GPS 權限');
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            // 搜尋附近的一番賞 (一番くじ)
+                            window.open(`http://googleusercontent.com/maps.google.com/search/一番くじ/@${lat},${lng},14z`, '_blank');
+                        },
+                        (error) => {
+                            // 失敗時直接打開地圖搜尋
+                            window.open('http://googleusercontent.com/maps.google.com/search/一番くじ', '_blank');
+                        }
+                    );
+                } else {
+                    window.open('http://googleusercontent.com/maps.google.com/search/一番くじ', '_blank');
+                }
+            };
+
             const getTypeColor = (t) => ({ sightseeing: 'bg-indigo-500', food: 'bg-orange-400', buy: 'bg-red-400', transport: 'bg-gray-500', hotel: 'bg-blue-600' }[t] || 'bg-slate-400');
             const getTypeLabel = (t) => ({ sightseeing: '景點', food: '美食', buy: '購物', transport: '交通', hotel: '住宿' }[t] || '其他');
             
@@ -336,7 +380,7 @@
 
             return {
                 currentTab, activeDay, itinerary, expenses, hotels, newItem, showAddModal, isSyncing, newExpense, rate,
-                addScheduleItem, removeScheduleItem, addExpense, removeExpense,
+                addScheduleItem, removeScheduleItem, addExpense, removeExpense, findKujiShops,
                 getTypeColor, getTypeLabel, getTipClass, getTipIcon, getWeather, totalExpense, formatCurrency
             };
         }
