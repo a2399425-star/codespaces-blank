@@ -22,6 +22,10 @@
         .tag-food { @apply bg-orange-100 text-orange-700; }
         .tag-buy { @apply bg-red-100 text-red-700; }
         .tag-tip { @apply bg-indigo-100 text-indigo-700; }
+        
+        /* Modal Animation */
+        .modal-enter-active, .modal-leave-active { transition: opacity 0.3s ease; }
+        .modal-enter-from, .modal-leave-to { opacity: 0; }
     </style>
 </head>
 <body class="text-slate-800 h-screen flex flex-col overflow-hidden">
@@ -39,9 +43,9 @@
         </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto hide-scrollbar bg-slate-50 safe-bottom pb-24">
+    <main class="flex-1 overflow-y-auto hide-scrollbar bg-slate-50 safe-bottom pb-24 relative">
         
-        <div v-if="currentTab === 'trip'" class="p-4 space-y-6">
+        <div v-if="currentTab === 'trip'" class="p-4 space-y-6 pb-24">
             <div class="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
                 <button v-for="(day, index) in itinerary" :key="index" 
                     @click="activeDay = index"
@@ -64,7 +68,7 @@
             </div>
 
             <div class="space-y-4">
-                <div v-for="(item, idx) in itinerary[activeDay].schedule" :key="idx" class="bg-white rounded-2xl p-4 card-shadow border border-slate-50 relative overflow-hidden">
+                <div v-for="(item, idx) in itinerary[activeDay].schedule" :key="idx" class="bg-white rounded-2xl p-4 card-shadow border border-slate-50 relative overflow-hidden group">
                     <div class="absolute left-0 top-0 bottom-0 w-1" :class="getTypeColor(item.type)"></div>
                     
                     <div class="flex justify-between items-start mb-2">
@@ -72,10 +76,15 @@
                             <span class="font-mono text-sm font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded">{{ item.time }}</span>
                             <span class="text-xs font-medium uppercase tracking-wider text-slate-400">{{ item.type }}</span>
                         </div>
-                        <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.place)" target="_blank" 
-                           class="bg-slate-900 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform">
-                            <i class="fa-solid fa-location-arrow text-xs"></i>
-                        </a>
+                        <div class="flex gap-2">
+                            <button @click="removeScheduleItem(idx)" class="text-slate-300 hover:text-red-500 w-8 h-8 flex items-center justify-center">
+                                <i class="fa-solid fa-trash-can text-sm"></i>
+                            </button>
+                            <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.place)" target="_blank" 
+                               class="bg-slate-900 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform">
+                                <i class="fa-solid fa-location-arrow text-xs"></i>
+                            </a>
+                        </div>
                     </div>
                     
                     <h3 class="text-lg font-bold text-slate-800 mb-1 leading-tight">{{ item.place }}</h3>
@@ -89,7 +98,15 @@
                         </span>
                     </div>
                 </div>
+                
+                <div v-if="itinerary[activeDay].schedule.length === 0" class="text-center py-10 text-slate-400">
+                    <p>今天還沒有安排行程</p>
+                </div>
             </div>
+
+            <button @click="showAddModal = true" class="fixed bottom-24 right-6 bg-slate-900 text-white w-14 h-14 rounded-full shadow-xl shadow-slate-400/50 flex items-center justify-center active:scale-90 transition-transform z-10">
+                <i class="fa-solid fa-plus text-xl"></i>
+            </button>
         </div>
 
         <div v-if="currentTab === 'utils'" class="p-4 space-y-4">
@@ -147,19 +164,59 @@
             <div class="space-y-3">
                 <div v-for="(exp, index) in expenses" :key="index" class="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-50">
                     <span class="font-medium text-slate-700">{{ exp.item }}</span>
-                    <div class="text-right">
-                        <div class="font-bold text-slate-900">¥{{ exp.amount }}</div>
-                        <div class="text-xs text-slate-400">≈ NT${{ Math.round(exp.amount * 0.22) }}</div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <div class="font-bold text-slate-900">¥{{ exp.amount }}</div>
+                            <div class="text-xs text-slate-400">≈ NT${{ Math.round(exp.amount * 0.22) }}</div>
+                        </div>
+                        <button @click="removeExpense(index)" class="text-slate-300 hover:text-red-500 p-2">
+                            <i class="fa-solid fa-circle-minus"></i>
+                        </button>
                     </div>
+                </div>
+                <div v-if="expenses.length === 0" class="text-center text-slate-400 text-sm mt-10">
+                    目前沒有支出紀錄
                 </div>
             </div>
             
-            <p class="text-xs text-center text-slate-400 mt-8">資料儲存於瀏覽器 LocalStorage (離線可用)</p>
+            <button @click="resetBudget" class="w-full mt-8 text-xs text-red-300">重置所有記帳資料</button>
         </div>
 
     </main>
+    
+    <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-4 bg-black/50 backdrop-blur-sm" @click.self="showAddModal = false">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-slide-up">
+            <h3 class="text-lg font-bold mb-4">新增 Day {{ activeDay + 1 }} 行程</h3>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-500 ml-1">時間</label>
+                    <input v-model="newItem.time" type="time" class="w-full bg-slate-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 ml-1">地點名稱</label>
+                    <input v-model="newItem.place" type="text" placeholder="例如: 清水寺" class="w-full bg-slate-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 ml-1">類型</label>
+                    <select v-model="newItem.type" class="w-full bg-slate-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="sightseeing">景點</option>
+                        <option value="food">美食</option>
+                        <option value="buy">購物</option>
+                        <option value="transport">交通</option>
+                        <option value="hotel">住宿</option>
+                    </select>
+                </div>
+            </div>
 
-    <nav class="bg-white/90 backdrop-blur-xl border-t border-slate-200 fixed bottom-0 w-full z-50 pb-safe">
+            <div class="flex gap-3 mt-6">
+                <button @click="showAddModal = false" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-medium">取消</button>
+                <button @click="addScheduleItem" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-200">新增</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bg-white/90 backdrop-blur-xl border-t border-slate-200 fixed bottom-0 w-full z-40 pb-safe">
         <div class="flex justify-around items-center h-16 safe-bottom">
             <button @click="currentTab = 'trip'" :class="currentTab === 'trip' ? 'text-indigo-600' : 'text-slate-400'" class="flex flex-col items-center gap-1 w-16 transition-colors">
                 <i class="fa-solid fa-map text-xl"></i>
@@ -178,17 +235,21 @@
 </div>
 
 <script>
-    const { createApp, ref, computed, onMounted } = Vue;
+    const { createApp, ref, computed, onMounted, watch } = Vue;
 
     createApp({
         setup() {
             const currentTab = ref('trip');
             const activeDay = ref(0);
-            const rate = ref(0.22); // JPY to TWD (可串接 API)
+            const rate = ref(0.22); 
             const showTWD = ref(false);
+            const showAddModal = ref(false);
+            
+            // 新增行程的暫存資料
+            const newItem = ref({ time: '10:00', place: '', type: 'sightseeing' });
 
-            // 資料初始化：根據你的 PDF 提取並強化的資料
-            const itinerary = ref([
+            // 預設行程資料 (如果手機沒存過，就用這個)
+            const defaultItinerary = [
                 {
                     date: '2026-01-19', location: '名古屋 (Nagoya)',
                     schedule: [
@@ -269,7 +330,9 @@
                         { time: '--:--', place: '溫暖的家', type: 'rest' }
                     ]
                 }
-            ]);
+            ];
+
+            const itinerary = ref(defaultItinerary);
 
             const hotels = ref([
                 { name: '10-18 Takebashichō', address: 'Nagoya, Nakamura Ward' },
@@ -277,23 +340,66 @@
                 { name: 'Ocean心斎橋', address: 'Osaka, Chuo Ward' }
             ]);
 
-            // 記帳邏輯 (使用 LocalStorage)
             const expenses = ref([]);
             const newExpense = ref({ item: '', amount: '' });
 
+            // 讀取資料 (LocalStorage)
             onMounted(() => {
-                const saved = localStorage.getItem('japan_expenses');
-                if (saved) expenses.value = JSON.parse(saved);
-                
-                // 這裡可以加入 Firebase 初始化代碼
-                // firebase.initializeApp(config); ...
+                // 1. 讀取記帳
+                const savedExp = localStorage.getItem('japan_expenses');
+                if (savedExp) expenses.value = JSON.parse(savedExp);
+
+                // 2. 讀取行程 (如果之前有修改過，就用修改過的)
+                const savedTrip = localStorage.getItem('japan_itinerary');
+                if (savedTrip) {
+                    itinerary.value = JSON.parse(savedTrip);
+                }
             });
+
+            // 監聽並自動存檔 (當行程或記帳變動時)
+            watch(expenses, (newVal) => {
+                localStorage.setItem('japan_expenses', JSON.stringify(newVal));
+            }, { deep: true });
+
+            watch(itinerary, (newVal) => {
+                localStorage.setItem('japan_itinerary', JSON.stringify(newVal));
+            }, { deep: true });
+
+            // --- 功能區 ---
 
             const addExpense = () => {
                 if(!newExpense.value.item || !newExpense.value.amount) return;
                 expenses.value.unshift({ ...newExpense.value });
-                localStorage.setItem('japan_expenses', JSON.stringify(expenses.value));
                 newExpense.value = { item: '', amount: '' };
+            };
+
+            const removeExpense = (index) => {
+                if(confirm('確定要刪除這筆支出嗎？')) {
+                    expenses.value.splice(index, 1);
+                }
+            };
+            
+            const resetBudget = () => {
+                if(confirm('確定要清空所有記帳資料？此動作無法復原。')) {
+                    expenses.value = [];
+                }
+            };
+
+            const addScheduleItem = () => {
+                if(!newItem.value.place) return;
+                // 加入到當天行程
+                itinerary.value[activeDay.value].schedule.push({ ...newItem.value });
+                // 根據時間排序
+                itinerary.value[activeDay.value].schedule.sort((a, b) => a.time.localeCompare(b.time));
+                
+                showAddModal.value = false;
+                newItem.value = { time: '10:00', place: '', type: 'sightseeing' }; // 重置表單
+            };
+
+            const removeScheduleItem = (idx) => {
+                if(confirm('確定要刪除這個行程嗎？')) {
+                    itinerary.value[activeDay.value].schedule.splice(idx, 1);
+                }
             };
 
             const totalExpense = computed(() => {
@@ -324,16 +430,14 @@
                 return map[tag] || 'fa-star';
             };
 
-            // 模擬天氣 (串接 OpenMeteo 需用 Lat/Lon，這邊用 Mock 資料示範，可替換)
             const getWeather = (dayIndex) => {
-                // 模擬 1月天氣
                 const weathers = [
-                    { temp: 6, icon: 'fa-cloud-sun', desc: '多雲' }, // Day 1
-                    { temp: 2, icon: 'fa-snowflake', desc: '可能降雪' }, // Day 2 (Gero)
-                    { temp: 8, icon: 'fa-sun', desc: '晴朗' }, // Day 3
-                    { temp: 9, icon: 'fa-cloud', desc: '陰天' }, // Day 4 (USJ)
+                    { temp: 6, icon: 'fa-cloud-sun', desc: '多雲' },
+                    { temp: 2, icon: 'fa-snowflake', desc: '可能降雪' },
+                    { temp: 8, icon: 'fa-sun', desc: '晴朗' },
+                    { temp: 9, icon: 'fa-cloud', desc: '陰天' },
                     { temp: 10, icon: 'fa-sun', desc: '晴時多雲' },
-                    { temp: 7, icon: 'fa-cloud-rain', desc: '陣雨' }, // Nara
+                    { temp: 7, icon: 'fa-cloud-rain', desc: '陣雨' },
                     { temp: 9, icon: 'fa-sun', desc: '晴朗' },
                     { temp: 8, icon: 'fa-cloud', desc: '多雲' },
                     { temp: 9, icon: 'fa-sun', desc: '晴朗' },
@@ -343,7 +447,9 @@
             };
 
             return {
-                currentTab, activeDay, itinerary, hotels, expenses, newExpense, addExpense, totalExpense,
+                currentTab, activeDay, itinerary, hotels, expenses, newExpense, 
+                addExpense, removeExpense, resetBudget, totalExpense,
+                showAddModal, newItem, addScheduleItem, removeScheduleItem,
                 formatCurrency, toggleCurrency, currencySymbol, exchangeRateDisplay, getTypeColor, getTipClass, getTipIcon, getWeather
             };
         }
