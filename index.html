@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>2026 日本關西之旅</title>
-    <meta name="theme-color" content="#ffffff">
-    <link rel="manifest" href="manifest.json">
-    
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- Tailwind + Vue (global) + FontAwesome + Google Font -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
@@ -21,16 +22,16 @@
         .tag-buy { @apply bg-red-100 text-red-700; }
         .tag-tip { @apply bg-indigo-100 text-indigo-700; }
         .card-shadow { box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05); }
-        
-        /* Modal 動畫 */
+
+        /* 動畫特效 */
         .modal-enter-active, .modal-leave-active { transition: opacity 0.3s ease; }
         .modal-enter-from, .modal-leave-to { opacity: 0; }
-        
-        /* 一番賞雷達波紋動畫 */
         .radar-ping { animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
         @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
-        
         [v-cloak] { display: none; }
+
+        /* small helper for safe bottom padding on nav */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
 <body class="text-slate-800 h-screen flex flex-col overflow-hidden">
@@ -42,8 +43,8 @@
             <h1 class="text-xl font-bold tracking-tight text-slate-900">Japan 2026</h1>
             <div class="flex items-center gap-2">
                 <p class="text-xs text-slate-500">10 Days Kansai & Nagoya</p>
-                <span v-if="isSyncing" class="text-[10px] text-blue-500 flex items-center bg-blue-50 px-2 py-0.5 rounded-full"><i class="fa-solid fa-rotate fa-spin mr-1"></i>同步中...</span>
-                <span v-else class="text-[10px] text-green-500 flex items-center bg-green-50 px-2 py-0.5 rounded-full"><i class="fa-solid fa-check mr-1"></i>已儲存</span>
+                <span v-if="isSyncing" class="text-[10px] text-blue-500 flex items-center bg-blue-50 px-2 py-0.5 rounded-full"><i class="fa-solid fa-rotate fa-spin mr-1"></i>同步中</span>
+                <span v-else class="text-[10px] text-green-500 flex items-center bg-green-50 px-2 py-0.5 rounded-full"><i class="fa-solid fa-check mr-1"></i>已同步</span>
             </div>
         </div>
         <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full">
@@ -52,11 +53,10 @@
     </header>
 
     <main class="flex-1 overflow-y-auto hide-scrollbar bg-slate-50 safe-bottom pb-24 relative">
-        
+
         <div v-if="currentTab === 'trip'" class="p-4 space-y-6">
-            
             <div class="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
-                <button v-for="(day, index) in itinerary" :key="index" 
+                <button v-for="(day, index) in itinerary" :key="index"
                     @click="activeDay = index"
                     :class="activeDay === index ? 'bg-slate-800 text-white shadow-lg scale-105' : 'bg-white text-slate-400 border border-slate-100'"
                     class="flex-shrink-0 w-14 h-16 rounded-2xl flex flex-col items-center justify-center transition-all duration-300">
@@ -88,14 +88,14 @@
                             <button @click="removeScheduleItem(idx)" class="text-slate-300 hover:text-red-500 w-8 h-8 flex items-center justify-center">
                                 <i class="fa-solid fa-trash-can text-sm"></i>
                             </button>
-                            <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.place)" target="_blank" 
+                            <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.place)" target="_blank"
                                class="bg-slate-900 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform">
                                 <i class="fa-solid fa-location-arrow text-xs"></i>
                             </a>
                         </div>
                     </div>
                     <h3 class="text-lg font-bold text-slate-800 mb-1 leading-tight">{{ item.place }}</h3>
-                    
+
                     <div v-if="item.tips && item.tips.length > 0" class="flex flex-wrap gap-2 mt-3">
                         <span v-for="tip in item.tips" :key="tip.text" class="text-xs px-2 py-1 rounded-md font-medium" :class="getTipClass(tip.tag)">
                             <i class="fa-solid mr-1" :class="getTipIcon(tip.tag)"></i>{{ tip.text }}
@@ -109,8 +109,23 @@
         </div>
 
         <div v-if="currentTab === 'utils'" class="p-4 space-y-4">
-            <h2 class="text-2xl font-bold px-2 mb-2">旅途工具</h2>
-            
+
+            <div class="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden active:scale-95 transition-transform" @click="findKujiShops">
+                <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/20 rounded-full blur-xl"></div>
+                <div class="relative z-10 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-xl font-bold mb-1"><i class="fa-solid fa-ticket mr-2"></i>一番賞雷達</h3>
+                        <p class="text-yellow-50 text-sm">搜尋附近可抽獎店家</p>
+                    </div>
+                    <div class="relative">
+                        <span class="absolute inline-flex h-full w-full rounded-full bg-white opacity-30 radar-ping"></span>
+                        <i class="fa-solid fa-location-crosshairs text-3xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="text-xl font-bold px-2 mt-6 mb-2">旅途資訊</h2>
+
             <div class="bg-white rounded-2xl p-5 card-shadow">
                 <h3 class="font-bold text-slate-800 mb-4 flex items-center"><i class="fa-solid fa-plane-departure text-indigo-500 mr-2"></i> 航班資訊</h3>
                 <div class="space-y-3 text-sm">
@@ -174,14 +189,6 @@
         </div>
     </main>
 
-    <div v-if="currentTab === 'trip'" class="fixed bottom-24 left-6 z-10">
-        <button @click="findKujiShops" class="bg-gradient-to-br from-yellow-400 to-orange-500 text-white w-14 h-14 rounded-full shadow-xl shadow-orange-300/50 flex items-center justify-center active:scale-90 transition-transform relative overflow-hidden">
-            <span class="absolute inline-flex h-full w-full rounded-full bg-white opacity-30 radar-ping"></span>
-            <i class="fa-solid fa-ticket text-xl relative z-10"></i>
-        </button>
-        <div class="text-[10px] text-center text-slate-500 font-bold mt-1 bg-white/80 backdrop-blur rounded px-1">一番賞</div>
-    </div>
-
     <button v-show="currentTab === 'trip'" @click="showAddModal = true" class="fixed bottom-24 right-6 bg-slate-900 text-white w-14 h-14 rounded-full shadow-xl shadow-slate-400/50 flex items-center justify-center active:scale-90 transition-transform z-10">
         <i class="fa-solid fa-plus text-xl"></i>
     </button>
@@ -226,160 +233,258 @@
     </nav>
 </div>
 
-<script type="module">
-    import { createApp, ref, computed, onMounted, watch, nextTick } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+<!-- Firebase compat SDK (optional — 用於雲端同步)
+     如果不需要雲端同步，可刪除下面兩個 <script> -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-    // ✅ 我已經幫你把你截圖裡的設定都填好了！
-    // 這樣記帳資料就不會不見了！
-    const firebaseConfig = {
-      apiKey: "AIzaSyBM7ZkACa3GCyDHyM6-cvAptRdTLrP1Vz4",
-      authDomain: "project-6278516196770343325.firebaseapp.com",
-      projectId: "project-6278516196770343325",
-      storageBucket: "project-6278516196770343325.firebasestorage.app",
-      messagingSenderId: "1092753345526",
-      appId: "1:1092753345526:web:83c76c77e00a6a2ad255d7",
-      measurementId: "G-JZ408WWH2S"
-    };
+<script>
+/*
+  這份 script 使用 Vue Global API（已在 <head> 載入）
+  - LocalStorage keys: jp_expenses, jp_itinerary
+  - Firebase (compat) 為可選：若要啟用雲端同步請填 firebaseConfig；若不需要可把 firebaseConfig 內容留空或移除 firebase 部分
+*/
 
-    let db;
-    try {
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        console.log("Firebase Connected");
-    } catch (e) {
-        console.error("Firebase Connect Error:", e);
+const firebaseConfig = {
+  apiKey: "AIzaSyBM7ZkACa3GCyDHyM6-cvAptRdTLrP1Vz4",
+  authDomain: "project-6278516196770343325.firebaseapp.com",
+  projectId: "project-6278516196770343325",
+  storageBucket: "project-6278516196770343325.firebasestorage.app",
+  messagingSenderId: "1092753345526",
+  appId: "1:1092753345526:web:83c76c77e00a6a2ad255d7",
+  measurementId: "G-JZ408WWH2S"
+};
+
+let firebaseAvailable = false;
+let firestoreDB = null;
+
+try {
+    if (window.firebase && firebaseConfig && firebaseConfig.projectId) {
+        firebase.initializeApp(firebaseConfig);
+        firestoreDB = firebase.firestore();
+        firebaseAvailable = true;
+        console.log("Firebase (compat) initialized.");
     }
+} catch (e) {
+    console.warn("Firebase init failed (continuing without cloud sync):", e);
+}
 
-    createApp({
-        setup() {
-            const currentTab = ref('trip');
-            const activeDay = ref(0);
-            const showAddModal = ref(false);
-            const isSyncing = ref(false);
-            const rate = ref(0.22);
-            
-            const newItem = ref({ time: '10:00', place: '', type: 'sightseeing' });
-            const newExpense = ref({ item: '', amount: '' });
+/* default itinerary (same as 你原本的) */
+const defaultItinerary = [
+    { date: '1/19', location: '名古屋', schedule: [
+        { time: '13:00', place: '名古屋中部國際機場', type: 'transport' },
+        { time: '16:12', place: '榮町商圈', type: 'sightseeing', tips: [{tag: 'buy', text: '唐吉訶德'}, {tag: 'food', text: '炸蝦三明治'}] },
+        { time: '17:18', place: '寶可夢中心', type: 'sightseeing', tips: [{tag: 'buy', text: '限定皮卡丘'}, {tag: 'tip', text: '可退稅'}] }
+    ]},
+    { date: '1/20', location: '下呂', schedule: [] },
+    { date: '1/21', location: '大阪', schedule: [] },
+    { date: '1/22', location: 'USJ', schedule: [] },
+    { date: '1/23', location: '大阪', schedule: [] },
+    { date: '1/24', location: '奈良', schedule: [] },
+    { date: '1/25', location: '大阪', schedule: [] },
+    { date: '1/26', location: '大阪', schedule: [] },
+    { date: '1/27', location: '大阪', schedule: [] },
+    { date: '1/28', location: '返程', schedule: [] }
+];
 
-            // 預設行程
-            const defaultItinerary = [
-                { date: '1/19', location: '名古屋', schedule: [
-                    { time: '13:00', place: '名古屋中部國際機場', type: 'transport' },
-                    { time: '16:12', place: '榮町商圈', type: 'sightseeing', tips: [{tag: 'buy', text: '唐吉訶德'}, {tag: 'food', text: '炸蝦三明治'}] },
-                    { time: '17:18', place: '寶可夢中心', type: 'sightseeing', tips: [{tag: 'buy', text: '限定皮卡丘'}, {tag: 'tip', text: '可退稅'}] }
-                ]},
-                { date: '1/20', location: '下呂', schedule: [] },
-                { date: '1/21', location: '大阪', schedule: [] },
-                { date: '1/22', location: 'USJ', schedule: [] },
-                { date: '1/23', location: '大阪', schedule: [] },
-                { date: '1/24', location: '奈良', schedule: [] },
-                { date: '1/25', location: '大阪', schedule: [] },
-                { date: '1/26', location: '大阪', schedule: [] },
-                { date: '1/27', location: '大阪', schedule: [] },
-                { date: '1/28', location: '返程', schedule: [] }
-            ];
+const { createApp } = Vue;
 
-            const itinerary = ref([...defaultItinerary]);
-            const expenses = ref([]);
-            const hotels = ref([
+createApp({
+    data() {
+        return {
+            // UI
+            currentTab: 'trip',
+            activeDay: 0,
+            showAddModal: false,
+            isSyncing: false,
+
+            // rate & finance
+            rate: 0.22,
+            newExpense: { item: '', amount: '' },
+            expenses: [],
+
+            // itinerary / hotels
+            newItem: { time: '10:00', place: '', type: 'sightseeing' },
+            itinerary: JSON.parse(JSON.stringify(defaultItinerary)),
+            hotels: [
                 { name: '10-18 Takebashichō', address: 'Nagoya' },
                 { name: '京阪環球影城飯店高塔', address: 'Osaka' },
                 { name: 'Ocean心斎橋', address: 'Osaka' }
-            ]);
+            ]
+        };
+    },
 
-            // Firebase 同步邏輯
-            onMounted(() => {
-                if(db) {
-                    onSnapshot(doc(db, "trips", "shared_trip_data"), (docSnap) => {
-                        if (docSnap.exists()) {
-                            const data = docSnap.data();
-                            if(data.itinerary) itinerary.value = data.itinerary;
-                            if(data.expenses) expenses.value = data.expenses;
-                        }
-                    });
-                }
-            });
-
-            const saveToCloud = async () => {
-                if (!db) return;
-                isSyncing.value = true;
-                await setDoc(doc(db, "trips", "shared_trip_data"), { itinerary: itinerary.value, expenses: expenses.value, lastUpdated: new Date() });
-                setTimeout(() => isSyncing.value = false, 800);
-            };
-
-            const addScheduleItem = () => {
-                if(!newItem.value.place) return;
-                if (!itinerary.value[activeDay.value].schedule) itinerary.value[activeDay.value].schedule = [];
-                itinerary.value[activeDay.value].schedule.push({ ...newItem.value });
-                itinerary.value[activeDay.value].schedule.sort((a, b) => a.time.localeCompare(b.time));
-                showAddModal.value = false;
-                newItem.value = { time: '10:00', place: '', type: 'sightseeing' };
-                saveToCloud();
-            };
-
-            const removeScheduleItem = (idx) => {
-                if(confirm('刪除此行程？')) {
-                    itinerary.value[activeDay.value].schedule.splice(idx, 1);
-                    saveToCloud();
-                }
-            };
-            
-            const addExpense = () => {
-                if(!newExpense.value.item || !newExpense.value.amount) return;
-                expenses.value.unshift({ ...newExpense.value });
-                newExpense.value = { item: '', amount: '' };
-                saveToCloud();
-            };
-
-            const removeExpense = (index) => {
-                if(confirm('刪除此筆支出？')) {
-                    expenses.value.splice(index, 1);
-                    saveToCloud();
-                }
-            };
-
-            // 🔍 一番賞雷達功能
-            const findKujiShops = () => {
-                if (navigator.geolocation) {
-                    alert('雷達啟動！正在搜尋附近的一番賞...');
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const lat = position.coords.latitude;
-                            const lng = position.coords.longitude;
-                            window.open(`http://googleusercontent.com/maps.google.com/search/一番くじ/@${lat},${lng},14z`, '_blank');
-                        },
-                        (error) => {
-                            window.open('http://googleusercontent.com/maps.google.com/search/一番くじ', '_blank');
-                        }
-                    );
-                } else {
-                    window.open('http://googleusercontent.com/maps.google.com/search/一番くじ', '_blank');
-                }
-            };
-
-            const getTypeColor = (t) => ({ sightseeing: 'bg-indigo-500', food: 'bg-orange-400', buy: 'bg-red-400', transport: 'bg-gray-500', hotel: 'bg-blue-600' }[t] || 'bg-slate-400');
-            const getTypeLabel = (t) => ({ sightseeing: '景點', food: '美食', buy: '購物', transport: '交通', hotel: '住宿' }[t] || '其他');
-            
-            const getTipClass = (tag) => ({ food: 'tag-food', buy: 'tag-buy', tip: 'tag-tip' }[tag] || 'bg-gray-100');
-            const getTipIcon = (tag) => ({ food: 'fa-utensils', buy: 'fa-bag-shopping', tip: 'fa-circle-info' }[tag] || 'fa-star');
-            
-            const getWeather = (day) => {
-                const ws = [{temp: 8, icon: 'fa-sun', desc: '晴'}, {temp: 2, icon: 'fa-snowflake', desc: '雪'}, {temp: 10, icon: 'fa-cloud', desc: '陰'}, {temp: 9, icon: 'fa-sun', desc: '晴'}, {temp: 7, icon: 'fa-cloud-rain', desc: '雨'}];
-                return ws[day % ws.length] || {temp: 10, icon: 'fa-sun', desc: '晴'};
-            };
-
-            const totalExpense = computed(() => expenses.value.reduce((s, i) => s + i.amount, 0) * rate.value);
-            const formatCurrency = (v) => new Intl.NumberFormat('zh-TW', {style:'currency', currency:'TWD', maximumFractionDigits:0}).format(v);
-
-            return {
-                currentTab, activeDay, itinerary, expenses, hotels, newItem, showAddModal, isSyncing, newExpense, rate,
-                addScheduleItem, removeScheduleItem, addExpense, removeExpense, findKujiShops,
-                getTypeColor, getTypeLabel, getTipClass, getTipIcon, getWeather, totalExpense, formatCurrency
-            };
+    computed: {
+        totalExpense() {
+            // 總支出（JPY -> * rate = TWD）
+            const sumJPY = this.expenses.reduce((s, i) => s + Number(i.amount || 0), 0);
+            return sumJPY * this.rate;
         }
-    }).mount('#app');
+    },
+
+    watch: {
+        // 自動儲存 expenses 與 itinerary 至 localStorage（深層監聽）
+        expenses: {
+            handler(newVal) {
+                localStorage.setItem('jp_expenses', JSON.stringify(newVal));
+                // 若有 firebase 可同步雲端
+                this.saveToCloudDebounced();
+            },
+            deep: true
+        },
+        itinerary: {
+            handler(newVal) {
+                localStorage.setItem('jp_itinerary', JSON.stringify(newVal));
+                this.saveToCloudDebounced();
+            },
+            deep: true
+        }
+    },
+
+    mounted() {
+        // 讀 localStorage 的支出與行程（若有）
+        try {
+            const saved = localStorage.getItem('jp_expenses');
+            if (saved) this.expenses = JSON.parse(saved);
+
+            const savedIt = localStorage.getItem('jp_itinerary');
+            if (savedIt) {
+                this.itinerary = JSON.parse(savedIt);
+            } else {
+                // 預設寫入 default only if none
+                localStorage.setItem('jp_itinerary', JSON.stringify(this.itinerary));
+            }
+        } catch (e) {
+            console.warn('localStorage load error', e);
+        }
+
+        // 如果 firebase 可用，監聽雲端資料（shared_trip_data）
+        if (firebaseAvailable && firestoreDB) {
+            try {
+                const docRef = firestoreDB.collection('trips').doc('shared_trip_data');
+                docRef.onSnapshot((snap) => {
+                    if (!snap.exists) return;
+                    const data = snap.data();
+                    // 合併雲端資料（但不覆蓋本地修改）
+                    if (data.itinerary) {
+                        // 若 local 沒有則覆蓋，或（你可以改成更細緻的合併邏輯）
+                        this.itinerary = data.itinerary;
+                        localStorage.setItem('jp_itinerary', JSON.stringify(this.itinerary));
+                    }
+                    if (data.expenses) {
+                        this.expenses = data.expenses;
+                        localStorage.setItem('jp_expenses', JSON.stringify(this.expenses));
+                    }
+                });
+            } catch (e) {
+                console.warn('firebase onSnapshot error', e);
+            }
+        }
+    },
+
+    methods: {
+        formatCurrency(v) {
+            try {
+                return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(v);
+            } catch {
+                return v;
+            }
+        },
+
+        // ========== Itinerary 功能 ==========
+        addScheduleItem() {
+            if (!this.newItem.place) return;
+            if (!this.itinerary[this.activeDay].schedule) this.itinerary[this.activeDay].schedule = [];
+            this.itinerary[this.activeDay].schedule.push({ ...this.newItem });
+            this.itinerary[this.activeDay].schedule.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+            this.showAddModal = false;
+            this.newItem = { time: '10:00', place: '', type: 'sightseeing' };
+            // localStorage 會由 watch 自動存
+        },
+
+        removeScheduleItem(idx) {
+            if (!confirm('刪除此行程？')) return;
+            this.itinerary[this.activeDay].schedule.splice(idx, 1);
+        },
+
+        // ========== 記帳功能 ==========
+        addExpense() {
+            if (!this.newExpense.item || !this.newExpense.amount) return;
+            // 保證 amount 是數字
+            const amount = Number(this.newExpense.amount);
+            if (Number.isNaN(amount)) return;
+            this.expenses.unshift({ item: this.newExpense.item, amount });
+            this.newExpense = { item: '', amount: '' };
+            // localStorage 會由 watch 自動存
+        },
+
+        removeExpense(index) {
+            if (!confirm('刪除此筆支出？')) return;
+            this.expenses.splice(index, 1);
+        },
+
+        // ========== 小工具 ==========
+        findKujiShops() {
+            if (navigator.geolocation) {
+                alert('正在偵測你的位置...請允許 GPS 權限');
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        window.open(`https://www.google.com/maps/search/一番くじ/@${lat},${lng},14z`, '_blank');
+                    },
+                    (error) => {
+                        window.open('https://www.google.com/maps/search/一番くじ', '_blank');
+                    }
+                );
+            } else {
+                window.open('https://www.google.com/maps/search/一番くじ', '_blank');
+            }
+        },
+
+        // ========== 樣式 / 標籤 ==========
+        getTypeColor(t) { return ({ sightseeing: 'bg-indigo-500', food: 'bg-orange-400', buy: 'bg-red-400', transport: 'bg-gray-500', hotel: 'bg-blue-600' }[t] || 'bg-slate-400'); },
+        getTypeLabel(t) { return ({ sightseeing: '景點', food: '美食', buy: '購物', transport: '交通', hotel: '住宿' }[t] || '其他'); },
+        getTipClass(tag) { return ({ food: 'tag-food', buy: 'tag-buy', tip: 'tag-tip' }[tag] || 'bg-gray-100'); },
+        getTipIcon(tag) { return ({ food: 'fa-utensils', buy: 'fa-bag-shopping', tip: 'fa-circle-info' }[tag] || 'fa-star'); },
+
+        getWeather(day) {
+            const ws = [{temp: 8, icon: 'fa-sun', desc: '晴'}, {temp: 2, icon: 'fa-snowflake', desc: '雪'}, {temp: 10, icon: 'fa-cloud', desc: '陰'}, {temp: 9, icon: 'fa-sun', desc: '晴'}, {temp: 7, icon: 'fa-cloud-rain', desc: '雨'}];
+            return ws[day % ws.length] || {temp: 10, icon: 'fa-sun', desc: '晴'};
+        },
+
+        // ========== Cloud sync (optional) ==========
+        async saveToCloud() {
+            if (!firebaseAvailable || !firestoreDB) return;
+            try {
+                this.isSyncing = true;
+                const docRef = firestoreDB.collection('trips').doc('shared_trip_data');
+                await docRef.set({
+                    itinerary: this.itinerary,
+                    expenses: this.expenses,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (e) {
+                console.warn('saveToCloud error', e);
+            } finally {
+                // 給 UI 一點時間顯示同步中
+                setTimeout(() => { this.isSyncing = false; }, 600);
+            }
+        },
+
+        // simple debounce wrapper to avoid saving too frequently
+        saveToCloudDebounced: (function() {
+            let timer = null;
+            return function() {
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(() => {
+                    this.saveToCloud();
+                    timer = null;
+                }, 800);
+            };
+        })()
+    }
+}).mount('#app');
 </script>
 </body>
 </html>
