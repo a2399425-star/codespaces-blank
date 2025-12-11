@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2026 日本關西名古屋之旅</title>
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="manifest.json">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .card-shadow { box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05); }
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        /* Tags Colors */
+        .tag-food { @apply bg-orange-100 text-orange-700; }
+        .tag-buy { @apply bg-red-100 text-red-700; }
+        .tag-tip { @apply bg-indigo-100 text-indigo-700; }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
+
+<div id="app" class="flex flex-col h-full relative">
+
+    <header class="bg-white/90 backdrop-blur-md px-6 py-4 flex justify-between items-center z-20 border-b border-slate-100 sticky top-0">
+        <div>
+            <h1 class="text-xl font-bold tracking-tight text-slate-900">Japan 2026</h1>
+            <p class="text-xs text-slate-500">10 Days Kansai & Nagoya</p>
+        </div>
+        <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full" @click="toggleCurrency">
+            <i class="fa-solid fa-coins text-slate-400 text-xs"></i>
+            <span class="text-sm font-medium font-mono">{{ currencySymbol }} {{ exchangeRateDisplay }}</span>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto hide-scrollbar bg-slate-50 safe-bottom pb-24">
+        
+        <div v-if="currentTab === 'trip'" class="p-4 space-y-6">
+            <div class="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+                <button v-for="(day, index) in itinerary" :key="index" 
+                    @click="activeDay = index"
+                    :class="activeDay === index ? 'bg-slate-800 text-white shadow-lg scale-105' : 'bg-white text-slate-400 border border-slate-100'"
+                    class="flex-shrink-0 w-14 h-16 rounded-2xl flex flex-col items-center justify-center transition-all duration-300">
+                    <span class="text-xs font-medium">Day</span>
+                    <span class="text-xl font-bold">{{ index + 1 }}</span>
+                </button>
+            </div>
+
+            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-3xl p-5 text-white shadow-lg shadow-indigo-200">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="text-indigo-100 text-sm mb-1"><i class="fa-solid fa-location-dot mr-1"></i> {{ itinerary[activeDay].location }}</div>
+                        <div class="text-3xl font-bold">{{ getWeather(activeDay).temp }}°C</div>
+                        <div class="text-sm opacity-90">{{ getWeather(activeDay).desc }}</div>
+                    </div>
+                    <i :class="getWeather(activeDay).icon" class="text-4xl opacity-80"></i>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div v-for="(item, idx) in itinerary[activeDay].schedule" :key="idx" class="bg-white rounded-2xl p-4 card-shadow border border-slate-50 relative overflow-hidden">
+                    <div class="absolute left-0 top-0 bottom-0 w-1" :class="getTypeColor(item.type)"></div>
+                    
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-sm font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded">{{ item.time }}</span>
+                            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">{{ item.type }}</span>
+                        </div>
+                        <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.place)" target="_blank" 
+                           class="bg-slate-900 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md active:scale-90 transition-transform">
+                            <i class="fa-solid fa-location-arrow text-xs"></i>
+                        </a>
+                    </div>
+                    
+                    <h3 class="text-lg font-bold text-slate-800 mb-1 leading-tight">{{ item.place }}</h3>
+                    
+                    <div v-if="item.tips && item.tips.length > 0" class="flex flex-wrap gap-2 mt-3">
+                        <span v-for="tip in item.tips" :key="tip.text" 
+                              class="text-xs px-2 py-1 rounded-md font-medium"
+                              :class="getTipClass(tip.tag)">
+                            <i class="fa-solid mr-1" :class="getTipIcon(tip.tag)"></i>
+                            {{ tip.text }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="currentTab === 'utils'" class="p-4 space-y-4">
+            <div class="bg-white rounded-2xl p-5 card-shadow">
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center"><i class="fa-solid fa-plane-departure text-indigo-500 mr-2"></i> 航班資訊</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-500">去程 01/19</span>
+                        <span class="font-medium">TPE -> NGO (名古屋)</span>
+                    </div>
+                     <div class="flex justify-between text-sm">
+                        <span class="text-slate-500">回程 01/28</span>
+                        <span class="font-medium">KIX (大阪) -> TPE</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 card-shadow">
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center"><i class="fa-solid fa-bed text-indigo-500 mr-2"></i> 住宿清單</h3>
+                <div class="space-y-4">
+                    <div v-for="hotel in hotels" class="border-b border-slate-100 last:border-0 pb-2 last:pb-0">
+                        <div class="font-medium text-slate-800">{{ hotel.name }}</div>
+                        <div class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-map-pin mr-1"></i>{{ hotel.address }}</div>
+                        <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(hotel.name)" class="text-xs text-blue-500 font-medium mt-1 inline-block">導航</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-red-50 rounded-2xl p-5 border border-red-100">
+                <h3 class="font-bold text-red-800 mb-2">緊急聯絡</h3>
+                <div class="text-sm text-red-600 space-y-1">
+                    <div><span class="font-bold">警察:</span> 110</div>
+                    <div><span class="font-bold">救護/火警:</span> 119</div>
+                    <div><span class="font-bold">駐日代表處:</span> +81-3-3280-7811</div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="currentTab === 'budget'" class="p-4">
+            <div class="bg-white rounded-2xl p-6 card-shadow text-center mb-6">
+                <div class="text-sm text-slate-400 mb-1">總支出 (TWD)</div>
+                <div class="text-4xl font-bold text-slate-800">{{ formatCurrency(totalExpense) }}</div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 card-shadow mb-6">
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <input v-model="newExpense.item" type="text" placeholder="項目 (如: 章魚燒)" class="bg-slate-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input v-model.number="newExpense.amount" type="number" placeholder="金額 (JPY)" class="bg-slate-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <button @click="addExpense" class="w-full bg-slate-900 text-white rounded-xl py-3 text-sm font-bold shadow-md active:scale-95 transition-transform">
+                    新增支出
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <div v-for="(exp, index) in expenses" :key="index" class="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-50">
+                    <span class="font-medium text-slate-700">{{ exp.item }}</span>
+                    <div class="text-right">
+                        <div class="font-bold text-slate-900">¥{{ exp.amount }}</div>
+                        <div class="text-xs text-slate-400">≈ NT${{ Math.round(exp.amount * 0.22) }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="text-xs text-center text-slate-400 mt-8">資料儲存於瀏覽器 LocalStorage (離線可用)</p>
+        </div>
+
+    </main>
+
+    <nav class="bg-white/90 backdrop-blur-xl border-t border-slate-200 fixed bottom-0 w-full z-50 pb-safe">
+        <div class="flex justify-around items-center h-16 safe-bottom">
+            <button @click="currentTab = 'trip'" :class="currentTab === 'trip' ? 'text-indigo-600' : 'text-slate-400'" class="flex flex-col items-center gap-1 w-16 transition-colors">
+                <i class="fa-solid fa-map text-xl"></i>
+                <span class="text-[10px] font-medium">行程</span>
+            </button>
+            <button @click="currentTab = 'utils'" :class="currentTab === 'utils' ? 'text-indigo-600' : 'text-slate-400'" class="flex flex-col items-center gap-1 w-16 transition-colors">
+                <i class="fa-solid fa-suitcase text-xl"></i>
+                <span class="text-[10px] font-medium">工具</span>
+            </button>
+            <button @click="currentTab = 'budget'" :class="currentTab === 'budget' ? 'text-indigo-600' : 'text-slate-400'" class="flex flex-col items-center gap-1 w-16 transition-colors">
+                <i class="fa-solid fa-wallet text-xl"></i>
+                <span class="text-[10px] font-medium">記帳</span>
+            </button>
+        </div>
+    </nav>
+</div>
+
+<script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            const currentTab = ref('trip');
+            const activeDay = ref(0);
+            const rate = ref(0.22); // JPY to TWD (可串接 API)
+            const showTWD = ref(false);
+
+            // 資料初始化：根據你的 PDF 提取並強化的資料
+            const itinerary = ref([
+                {
+                    date: '2026-01-19', location: '名古屋 (Nagoya)',
+                    schedule: [
+                        { time: '13:00', place: '名古屋中部國際機場', type: 'transport' },
+                        { time: '16:12', place: '榮町商圈', type: 'sightseeing', tips: [{tag: 'buy', text: '唐吉訶德'}, {tag: 'food', text: '炸蝦三明治'}] },
+                        { time: '17:18', place: '寶可夢中心名古屋店', type: 'sightseeing', tips: [{tag: 'buy', text: '限定皮卡丘'}, {tag: 'tip', text: '可退稅'}] },
+                        { time: '20:00', place: 'Sky Promenade', type: 'sightseeing', tips: [{tag: 'tip', text: '夜景拍攝點'}] },
+                        { time: '21:48', place: '柳橋中央市場', type: 'food', tips: [{tag: 'food', text: '海鮮丼'}, {tag: 'food', text: '關東煮'}] }
+                    ]
+                },
+                {
+                    date: '2026-01-20', location: '下呂/岐阜',
+                    schedule: [
+                        { time: '08:00', place: 'Ministop 租車出發', type: 'transport', tips: [{tag: 'tip', text: '檢查ETC卡'}] },
+                        { time: '10:15', place: '合掌村受付売店', type: 'sightseeing', tips: [{tag: 'food', text: '飛驒牛串燒'}, {tag: 'food', text: '五平餅'}, {tag: 'buy', text: '猴寶寶玩偶'}] }
+                    ]
+                },
+                {
+                    date: '2026-01-21', location: '名古屋 -> 大阪',
+                    schedule: [
+                        { time: '09:30', place: '名古屋城', type: 'sightseeing', tips: [{tag: 'tip', text: '金鯱拍照'}] },
+                        { time: '11:28', place: '大須商店街', type: 'sightseeing', tips: [{tag: 'food', text: '炸雞'}, {tag: 'buy', text: '二手衣'}] },
+                        { time: '15:54', place: '京阪環球影城飯店高塔', type: 'hotel', tips: [{tag: 'tip', text: 'Check-in 先寄放行李'}] }
+                    ]
+                },
+                {
+                    date: '2026-01-22', location: '大阪 USJ',
+                    schedule: [
+                        { time: '08:00', place: '京阪環球影城飯店', type: 'transport' },
+                        { time: '09:05', place: '日本環球影城 (USJ)', type: 'sightseeing', tips: [{tag: 'tip', text: '必衝瑪利歐園區'}, {tag: 'food', text: '奶油啤酒'}, {tag: 'buy', text: '星星爆米花桶'}] },
+                        { time: '19:14', place: '返回飯店', type: 'rest' }
+                    ]
+                },
+                {
+                    date: '2026-01-23', location: '大阪市區',
+                    schedule: [
+                        { time: '11:22', place: 'Joshin Super Kids Land', type: 'buy', tips: [{tag: 'buy', text: '鋼彈模型聖地'}] },
+                        { time: '12:25', place: 'Kart 卡丁車體驗', type: 'activity', tips: [{tag: 'tip', text: '需帶國際駕照'}] },
+                        { time: '13:31', place: 'Ocean 心齋橋飯店', type: 'hotel' }
+                    ]
+                },
+                {
+                    date: '2026-01-24', location: '奈良 (Nara)',
+                    schedule: [
+                        { time: '16:56', place: 'JR奈良站', type: 'transport' },
+                        { time: '18:12', place: '東向商店街', type: 'sightseeing', tips: [{tag: 'food', text: '中谷堂搗麻糬'}] },
+                        { time: '19:34', place: '奈良公園', type: 'sightseeing', tips: [{tag: 'tip', text: '小心鹿咬人'}, {tag: 'buy', text: '鹿仙貝'}] },
+                        { time: '20:40', place: '東大寺博物館', type: 'sightseeing' },
+                        { time: '21:58', place: '春日大社', type: 'sightseeing' }
+                    ]
+                },
+                {
+                    date: '2026-01-25', location: '大阪',
+                    schedule: [
+                         { time: '09:08', place: 'ANTIQUE MIKE', type: 'buy', tips: [{tag: 'buy', text: '美式古董玩具'}] },
+                         { time: '10:13', place: 'LIBERTY WALK OSAKA', type: 'sightseeing', tips: [{tag: 'tip', text: '改裝車迷必去'}] }
+                    ]
+                },
+                 {
+                    date: '2026-01-26', location: '大阪',
+                    schedule: [
+                         { time: '09:27', place: '大阪站', type: 'transport' },
+                         { time: '10:44', place: 'KITH 大阪', type: 'buy', tips: [{tag: 'buy', text: '限量潮鞋/T恤'}] },
+                         { time: '12:01', place: '黑門市場', type: 'food', tips: [{tag: 'food', text: '和牛'}, {tag: 'food', text: '鮪魚大腹'}, {tag: 'food', text: '豆漿'}] }
+                    ]
+                },
+                {
+                    date: '2026-01-27', location: '大阪 Free Day',
+                    schedule: [
+                        { time: '09:41', place: '大阪梅田(阪神)', type: 'buy', tips: [{tag: 'buy', text: '百貨公司激戰區'}] },
+                        { time: 'All Day', place: 'Ocean心斎橋周邊', type: 'sightseeing' }
+                    ]
+                },
+                {
+                    date: '2026-01-28', location: '大阪 -> 返台',
+                    schedule: [
+                        { time: '09:23', place: '大阪國際機場(伊丹/KIX)', type: 'transport', tips: [{tag: 'tip', text: '預留3小時Check-in'}] },
+                        { time: '--:--', place: '溫暖的家', type: 'rest' }
+                    ]
+                }
+            ]);
+
+            const hotels = ref([
+                { name: '10-18 Takebashichō', address: 'Nagoya, Nakamura Ward' },
+                { name: '京阪環球影城飯店高塔', address: 'Osaka, Konohana Ward' },
+                { name: 'Ocean心斎橋', address: 'Osaka, Chuo Ward' }
+            ]);
+
+            // 記帳邏輯 (使用 LocalStorage)
+            const expenses = ref([]);
+            const newExpense = ref({ item: '', amount: '' });
+
+            onMounted(() => {
+                const saved = localStorage.getItem('japan_expenses');
+                if (saved) expenses.value = JSON.parse(saved);
+                
+                // 這裡可以加入 Firebase 初始化代碼
+                // firebase.initializeApp(config); ...
+            });
+
+            const addExpense = () => {
+                if(!newExpense.value.item || !newExpense.value.amount) return;
+                expenses.value.unshift({ ...newExpense.value });
+                localStorage.setItem('japan_expenses', JSON.stringify(expenses.value));
+                newExpense.value = { item: '', amount: '' };
+            };
+
+            const totalExpense = computed(() => {
+                return expenses.value.reduce((sum, item) => sum + item.amount, 0) * rate.value;
+            });
+
+            // 輔助功能
+            const formatCurrency = (val) => {
+                return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(val);
+            };
+
+            const toggleCurrency = () => { showTWD.value = !showTWD.value; };
+            const currencySymbol = computed(() => showTWD.value ? 'NT$' : '¥');
+            const exchangeRateDisplay = computed(() => showTWD.value ? 'TWD' : 'JPY');
+
+            const getTypeColor = (type) => {
+                const map = { transport: 'bg-gray-400', food: 'bg-orange-400', sightseeing: 'bg-indigo-500', buy: 'bg-red-400', hotel: 'bg-slate-800' };
+                return map[type] || 'bg-blue-400';
+            };
+
+            const getTipClass = (tag) => {
+                const map = { food: 'tag-food', buy: 'tag-buy', tip: 'tag-tip' };
+                return map[tag] || 'bg-gray-100 text-gray-600';
+            };
+            
+            const getTipIcon = (tag) => {
+                const map = { food: 'fa-utensils', buy: 'fa-bag-shopping', tip: 'fa-circle-info' };
+                return map[tag] || 'fa-star';
+            };
+
+            // 模擬天氣 (串接 OpenMeteo 需用 Lat/Lon，這邊用 Mock 資料示範，可替換)
+            const getWeather = (dayIndex) => {
+                // 模擬 1月天氣
+                const weathers = [
+                    { temp: 6, icon: 'fa-cloud-sun', desc: '多雲' }, // Day 1
+                    { temp: 2, icon: 'fa-snowflake', desc: '可能降雪' }, // Day 2 (Gero)
+                    { temp: 8, icon: 'fa-sun', desc: '晴朗' }, // Day 3
+                    { temp: 9, icon: 'fa-cloud', desc: '陰天' }, // Day 4 (USJ)
+                    { temp: 10, icon: 'fa-sun', desc: '晴時多雲' },
+                    { temp: 7, icon: 'fa-cloud-rain', desc: '陣雨' }, // Nara
+                    { temp: 9, icon: 'fa-sun', desc: '晴朗' },
+                    { temp: 8, icon: 'fa-cloud', desc: '多雲' },
+                    { temp: 9, icon: 'fa-sun', desc: '晴朗' },
+                    { temp: 10, icon: 'fa-plane', desc: '適合飛行' },
+                ];
+                return weathers[dayIndex] || { temp: 10, icon: 'fa-sun', desc: '晴' };
+            };
+
+            return {
+                currentTab, activeDay, itinerary, hotels, expenses, newExpense, addExpense, totalExpense,
+                formatCurrency, toggleCurrency, currencySymbol, exchangeRateDisplay, getTypeColor, getTipClass, getTipIcon, getWeather
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
