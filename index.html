@@ -163,12 +163,27 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-    // 🔴 🔴 請在這裡把你的 Firebase Config 貼回來 🔴 🔴
-    const firebaseConfig = {
-        // ... 把你的 apiKey 等設定貼在這裡 ...
-        // apiKey: "...",
-        // ...
-    };
+    // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBM7ZkACa3GCyDHyM6-cvAptRdTLrP1Vz4",
+  authDomain: "project-6278516196770343325.firebaseapp.com",
+  projectId: "project-6278516196770343325",
+  storageBucket: "project-6278516196770343325.firebasestorage.app",
+  messagingSenderId: "1092753345526",
+  appId: "1:1092753345526:web:83c76c77e00a6a2ad255d7",
+  measurementId: "G-JZ408WWH2S"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
     let db;
     try {
